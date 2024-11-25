@@ -7,6 +7,7 @@ import re
 import rasterio
 from rasterio.transform import from_bounds
 from io import BytesIO
+import gc
 gdf = gpd.read_file("soi_osm_sheet_index.geojson.json" )
 
 def process_single_image(image, filename):
@@ -136,19 +137,51 @@ def process_single_image(image, filename):
         st.error(f"error processing {filename}: {e}")
         return None
 
-st.title('Automatic Georeferencer')
-st.subheader('Made by Jason Dsouza')
-uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
-if uploaded_file:
-    filename = uploaded_file.name
-    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-    image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-    tiff_data = process_single_image(image, filename)
-    if tiff_data:
-        st.success("GeoTIFF successfully created!")
-        st.download_button(
-            label='Download GeoTIFF',
-            data=tiff_data,
-            file_name=f'{os.path.splitext(filename)[0]}.tif',
-            mime='image/tiff'
-        )
+@st.cache_data  # Cache the processed results
+def process_and_get_tiff(uploaded_file):
+    try:
+        filename = uploaded_file.name
+        # Read file in chunks instead of all at once
+        file_bytes = np.frombuffer(uploaded_file.getvalue(), np.uint8)
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        
+        # Process image and get tiff data
+        tiff_data = process_single_image(image, filename)
+        
+        # Clear memory
+        del image
+        del file_bytes
+        gc.collect()
+        
+        return tiff_data, filename
+    except Exception as e:
+        st.error(f"Error processing image: {str(e)}")
+        return None, None
+
+def main():
+    st.title("Automatic Georeferencer")
+    st.subheader('Made by Jason Dsouza')
+    
+    uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
+    
+    if uploaded_file:
+        with st.spinner('Processing image...'):
+            tiff_data, filename = process_and_get_tiff(uploaded_file)
+            
+            if tiff_data:
+                st.success("GeoTIFF successfully created!")
+                
+                # Create download button with chunked download
+                st.download_button(
+                    label='Download GeoTIFF',
+                    data=tiff_data,
+                    file_name=f'{os.path.splitext(filename)[0]}.tif',
+                    mime='image/tiff'
+                )
+                
+                # Clear memory after download
+                del tiff_data
+                gc.collect()
+
+if __name__ == "__main__":
+    main()
