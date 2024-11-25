@@ -7,9 +7,6 @@ import re
 import rasterio
 from rasterio.transform import from_bounds
 from io import BytesIO
-from streamlit_folium import folium_static
-import folium
-import zipfile
 gdf = gpd.read_file("soi_osm_sheet_index.geojson.json" )
 
 def process_single_image(image, filename):
