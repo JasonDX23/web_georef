@@ -136,6 +136,8 @@ def process_single_image(image, filename):
         st.error(f"error processing {filename}: {e}")
         return None
 
+st.title('Automatic Georeferencer')
+st.subheader('Made by Jason Dsouza')
 uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
 if uploaded_file:
     filename = uploaded_file.name
