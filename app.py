@@ -142,10 +142,16 @@ def process_single_image(image, filename):
 uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
 if uploaded_file:
     filename = uploaded_file.name
+    progress_text = "Processing image..."
+    progress_bar = st.progress(0)
+    status_text = st.empty()    
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+    progress_bar.progress(25)
     image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    progress_bar.progress(50)
 
     tiff_data = process_single_image(image, filename)
+    progress_bar.progress(100)
 
     if tiff_data:
         st.success("GeoTIFF successfully created!")
@@ -155,3 +161,6 @@ if uploaded_file:
             file_name=f'{os.path.splitext(filename)[0]}.tif',
             mime='image/tiff'
         )
+    else:
+        progress_bar.empty()
+        status_text.error("Failed to process image")
