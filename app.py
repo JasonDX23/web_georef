@@ -139,78 +139,19 @@ def process_single_image(image, filename):
         st.error(f"error processing {filename}: {e}")
         return None
 
-def create_zip_of_processed_images(processed_files):
-    memory_file = BytesIO()
-    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for filename, tiff_buffer in processed_files.items():
-            zf.writestr(f"{filename}.tif", tiff_buffer.getvalue())
-    memory_file.seek(0)
-    return memory_file
+uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
+if uploaded_file:
+    filename = uploaded_file.name
+    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+    image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-def main():
-    st.title("Automatic Georeferencer")
-    
-    # File uploader for multiple images
-    uploaded_files = st.file_uploader("Upload images", type=['png', 'jpg', 'jpeg'], accept_multiple_files=True)
-    
-    if uploaded_files:
-        if st.button("Process Images"):
-            processed_files = {}
-            progress_bar = st.progress(0)
-            
-            for i, uploaded_file in enumerate(uploaded_files):
-                try:
-                    filename = uploaded_file.name
-                    
-                    # Convert uploaded file to image
-                    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-                    image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-                    
-                    # Process the image
-                    tiff_data = process_single_image(image, filename)
-                    
-                    if tiff_data:
-                        processed_files[os.path.splitext(filename)[0]] = tiff_data
-                    else:
-                        st.error(f"Failed to process {filename}")
-                        
-                except Exception as e:
-                    st.error(f"Error processing {filename}: {str(e)}")
-                
-                # Update progress bar
-                progress_bar.progress((i + 1) / len(uploaded_files))
-            
-            if processed_files:
-                # Create zip file of processed images
-                zip_file = create_zip_of_processed_images(processed_files)
-                
-                # Create download button
-                st.download_button(
-                    label="Download All Processed GeoTIFFs",
-                    data=zip_file,
-                    file_name="processed_geotiffs.zip",
-                    mime="application/zip"
-                )
-                
-                st.success(f"Successfully processed {len(processed_files)} out of {len(uploaded_files)} images")
+    tiff_data = process_single_image(image, filename)
 
-                st.markdown(
-                        """
-                        <style>
-                        .signature {
-                            position: fixed;
-                            bottom: 20px;  /* Distance from bottom */
-                            right: 20px;   /* Distance from right */
-                            color: #888;   /* Gray color */
-                            font-size: 14px;
-                            font-style: italic;
-                            z-index: 1000;
-                        }
-                        </style>
-                        <div class="signature">Made by Jason Dsouza</div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-if __name__ == "__main__":
-    main()
+    if tiff_data:
+        st.success("GeoTIFF successfully created!")
+        st.download_button(
+            label='Download GeoTIFF',
+            data=tiff_data,
+            file_name=f'{os.path.splitext(filename)[0]}.tif',
+            mime='image/tiff'
+        )
