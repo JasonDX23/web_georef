@@ -161,6 +161,14 @@ def process_and_get_tiff(uploaded_file):
 def main():
     st.title("Automatic Georeferencer")
     st.subheader('Made by Jason Dsouza')
+    st.markdown(
+    r"""
+    <style>
+    .stDeployButton {
+            visibility: hidden;
+        }
+    </style>
+    """, unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader("Choose an image", type=['png', 'jpg', 'jpeg'])
     
